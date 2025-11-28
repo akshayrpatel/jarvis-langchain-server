@@ -23,7 +23,7 @@ class VectorDBConfig(BaseModel):
 	mode: str = VectorDBMode.SERVER.value if settings.app_env == AppMode.PRODUCTION.value else VectorDBMode.LOCAL.value
 	persist_directory: Path = settings.app_root / settings.vectordb_dir
 	host: str = settings.vectordb_host
-	port: int = int(settings.vectordb_port), 8000
+	port: int = int(settings.vectordb_port)
 	ssl: bool = True if settings.app_env == AppMode.PRODUCTION.value else False
 	collection_name: str = settings.vectordb_collection_name
 
