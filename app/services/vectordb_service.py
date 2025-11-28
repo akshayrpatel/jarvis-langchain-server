@@ -1,7 +1,7 @@
 import logging
 
 from pathlib import Path
-from typing import List
+from typing import List, Sequence
 from chromadb import ClientAPI, PersistentClient, HttpClient
 from chromadb.types import Collection
 
@@ -50,11 +50,19 @@ class VectorDBService:
 		self.host: str = host
 		self.port: int = port
 		self.ssl: bool = ssl
-		self.client: ClientAPI = self._create_client()
+		self.client: ClientAPI | None = None
 
 		self.collection_name: str = collection_name
-		self.collection: Collection = self._create_collection(collection_name)
-		logger.info("[VectorDBService] Initialized")
+		self.collection: Collection | None = None
+		logger.info("[VectorDBService] Initialized (lazy)")
+
+	def initialize_db_connection(self):
+		logger.info("[VectorDBService] Initializing db client and collection")
+		if self.client is not None:
+			return
+
+		self.client = self._create_client()
+		self.collection = self._create_collection(self.collection_name)
 
 	def _create_client(self) -> ClientAPI:
 		"""
@@ -117,6 +125,8 @@ class VectorDBService:
 		"""
 		Fetch relevant document chunks from vector db that match the given categories
 		"""
+		if self.client is None:
+			self.initialize_db_connection()
 
 		logger.info("[VectorDBService] Running similarity search by category for query: %s", query[:10])
 		results = self.collection.get(
