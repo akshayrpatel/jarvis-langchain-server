@@ -40,7 +40,9 @@ async def init_services() -> None:
 	logger.info("[ServiceRegistry] Initializing services")
 	service_registry.llm = LLMService()
 	service_registry.memory = MemoryService()
-	service_registry.vectordb = VectorDBService(mode=vectordb_config.mode)
+	service_registry.vectordb = VectorDBService(
+		mode=vectordb_config.mode,
+		ssl=vectordb_config.ssl)
 	service_registry.rag = RAGService(
 		memory=service_registry.memory,
 		vectordb=service_registry.vectordb,
