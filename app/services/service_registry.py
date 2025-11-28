@@ -42,6 +42,8 @@ async def init_services() -> None:
 	service_registry.memory = MemoryService()
 	service_registry.vectordb = VectorDBService(
 		mode=vectordb_config.mode,
+		host=vectordb_config.host,
+		port=vectordb_config.port,
 		ssl=vectordb_config.ssl)
 	service_registry.rag = RAGService(
 		memory=service_registry.memory,
