@@ -48,7 +48,7 @@ async def init_services() -> None:
 	service_registry.rag = RAGService(
 		memory=service_registry.memory,
 		vectordb=service_registry.vectordb,
-		llm=service_registry.llm,
+		llm=service_registry.llm
 	)
 	logger.info("[ServiceRegistry] Initialized")
 

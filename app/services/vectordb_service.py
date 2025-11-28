@@ -65,7 +65,7 @@ class VectorDBService:
 			logger.info("[VectorDBService] Using local persistent ChromaDB at %s", self.persist_directory)
 			self.persist_directory.mkdir(parents=True, exist_ok=True)
 			return PersistentClient(
-				path=self.persist_directory,
+				path=self.persist_directory
 			)
 
 		elif self.mode == VectorDBMode.SERVER:
