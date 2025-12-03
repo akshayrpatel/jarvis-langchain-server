@@ -2,7 +2,6 @@
 
 Jarvis LangChain Server is the backend to my personal AI-powered portfolio assistant, built to experiment with modern AI frameworks and allow visitors to interactively explore my work and projects.
 
----
 
 ## **Motivation & Purpose**
 
@@ -35,7 +34,6 @@ When a user asks a question, the system:
 
 This design ensures **relevant, accurate, and contextual answers** while allowing me to experiment with LLM integration, memory management, and retrieval systems.
 
----
 
 ## **Architecture**
 
@@ -47,7 +45,6 @@ The architecture is modular and service-oriented, designed for clarity and maint
 
 *A diagram will be added here later to visually depict the system.*
 
----
 
 ## **Technologies and Concepts**
 
@@ -63,7 +60,6 @@ The architecture is modular and service-oriented, designed for clarity and maint
 
 The project combines **state-of-the-art AI concepts** with **practical software engineering principles**, like modularity, service orchestration, and failover strategies.
 
----
 
 ## **How I Built It and Challenges Faced**
 
@@ -78,7 +74,6 @@ I built this project as part of my self-learning journey:
 
 Despite the challenges, I successfully built a working system that demonstrates **how RAG and LLMs can power a personal AI assistant**.
 
----
 
 ## **Key Learnings**
 
@@ -91,5 +86,3 @@ This project taught me both **conceptual and practical skills**:
 * **Prompt engineering & template design** – Structuring context for coherent AI responses
 * **Modular service design** – Building maintainable, testable, and extendable systems
 * **Debugging and hosting** – Solving real-world challenges in multi-component AI applications
-
----

@@ -23,8 +23,13 @@ RAG_TEMPLATE = PromptTemplate.from_template(
 	   - Avoid tables, nested lists, or complex formatting, and don't use --.
 	   - Use emojis/icons sparingly to highlight context (📞, 💼, 🎓, 🚀).
 	4. **Follow-up Questions**
-	   - Provide 3–4 short follow-up questions related to the current query.
-	   - Keep questions plain text, max 10–20 words each, no formatting (** or _).
+		 - Provide 1 or upto 3 follow-up questions.
+		 - Questions must be:
+	       * short (10–20 words max),
+	       * directly answerable using the CONTEXT,
+	       * related to the user's question OR, if not possible,
+	         directly related to Akshay’s portfolio (skills, work, projects, experience).
+	       * No markdown, no formatting, no special characters.
 	5. **Answer Structure**
 	   - Output strictly in this JSON format (no extra spaces, line breaks, or tokens):
 	     {{
