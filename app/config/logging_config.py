@@ -1,11 +1,10 @@
 import logging
 from datetime import datetime
-from pathlib import Path
 from logging.config import dictConfig
 from app.config.settings import settings
 
 
-LOG_DIR = Path(__file__).parents[2] / "logs"
+LOG_DIR = settings.app_root / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 LOG_DATE = datetime.now().strftime("%Y-%m-%d")
 LOG_FILE_NAME = f"{LOG_DATE}.jarvis-langchain-server.{settings.app_env}.log"

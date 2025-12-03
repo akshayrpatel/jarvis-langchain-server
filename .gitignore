@@ -11,6 +11,7 @@ trash/
 cache/
 models/
 logs/
+backup/
 
 tests/
 
