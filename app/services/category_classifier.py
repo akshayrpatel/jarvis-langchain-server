@@ -7,6 +7,8 @@ from typing import List, Dict
 from pydantic import BaseModel
 from fastembed import TextEmbedding
 from sklearn.preprocessing import MultiLabelBinarizer
+from functools import lru_cache
+from xgboost import XGBClassifier
 
 from app.config.services import classifier_config
 
@@ -83,6 +85,22 @@ CATEGORY_REGISTRY: Dict[Category, CategoryInfo] = {
 logger = logging.getLogger(__name__)
 
 
+@lru_cache(maxsize=1)
+def get_embedder(embed_model_name: str) -> TextEmbedding:
+	return TextEmbedding(embed_model_name, threads=1)
+
+@lru_cache(maxsize=1)
+def get_label_binarizer(classifier_models_dir: str = classifier_config.models_dir,
+                        model_label_binarizer_name: str = classifier_config.model_label_binarizer_name) -> MultiLabelBinarizer:
+	path = f"{classifier_models_dir}/{model_label_binarizer_name}.pkl"
+	return joblib.load(path)
+
+@lru_cache(maxsize=1)  # Keep only 2 XGBoost models in memory at a time
+def get_model(classifier_models_dir: str, label: str) -> XGBClassifier:
+	"""Load a single XGBoost model for a given label, cached"""
+	path = f"{classifier_models_dir}/xgb_{label}.pkl"
+	return joblib.load(path)
+
 class CategoryClassifier:
 	"""
 	Classifies chatbot queries into one or more predefined categories.
@@ -102,29 +120,22 @@ class CategoryClassifier:
 	             model_name: str,
 	             classifier_models_dir: str = classifier_config.models_dir,
 	             threshold: float = 0.6):
-		self.embedder: TextEmbedding = TextEmbedding(model_name, threads=1)
+		self.embed_model_name: str = model_name
 		self.classifier_models_dir: str = classifier_models_dir
 		self.threshold: float = threshold
 
-		# Load label encoder
-		self.multi_label_binarizer: MultiLabelBinarizer = joblib.load(
-			f"{classifier_models_dir}/{classifier_config.model_label_binarizer_name}.pkl"
-		)
-
-		# Load each classifier
-		self.models: Dict[str, any] = {}
-		for label in self.multi_label_binarizer.classes_:
-			self.models[label] = joblib.load(f"{classifier_models_dir}/xgb_{label}.pkl")
-
 	def _embed_text(self, text: str) -> np.ndarray:
-		return np.array(list(self.embedder.embed(text)))
+		embedder: TextEmbedding = get_embedder(self.embed_model_name)
+		return np.array(list(embedder.embed(text)))
 
 	def classify(self, text: str) -> List[str]:
 		categories: List[str] = []
 		query_embedding: np.ndarray = self._embed_text(text)
+		binarizer: MultiLabelBinarizer = get_label_binarizer(classifier_models_dir=self.classifier_models_dir)
 
-		for label, model in self.models.items():
-			prob = float(model.predict_proba(query_embedding)[0][1])
+		for label in binarizer.classes_:
+			model: XGBClassifier = get_model(classifier_models_dir=self.classifier_models_dir, label=label)
+			prob: float = float(model.predict_proba(query_embedding)[0][1])
 			if prob >= self.threshold:
 				categories.append(label)
 
