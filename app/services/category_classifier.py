@@ -95,7 +95,7 @@ def get_label_binarizer(classifier_models_dir: str = classifier_config.models_di
 	path = f"{classifier_models_dir}/{model_label_binarizer_name}.pkl"
 	return joblib.load(path)
 
-@lru_cache(maxsize=1)  # Keep only 2 XGBoost models in memory at a time
+@lru_cache(maxsize=3)  # Keep only 3 XGBoost models in memory at a time
 def get_model(classifier_models_dir: str, label: str) -> XGBClassifier:
 	"""Load a single XGBoost model for a given label, cached"""
 	path = f"{classifier_models_dir}/xgb_{label}.pkl"
