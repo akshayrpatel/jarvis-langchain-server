@@ -1,3 +1,9 @@
+import tracemalloc
+
+tracemalloc.start()
+snapshot1 = tracemalloc.take_snapshot()
+print("Memory before loading classifier:", sum([stat.size for stat in snapshot1.statistics('filename')])/1024**2, "MB")
+
 import os
 import logging
 import joblib
@@ -141,11 +147,21 @@ class CategoryClassifier:
 	def classify(self, text: str) -> List[str]:
 		categories: List[str] = []
 		query_embedding: np.ndarray = self._embed_text(text)
+
+		snapshot2 = tracemalloc.take_snapshot()
+		print("Memory after embedding:", sum([stat.size for stat in snapshot2.statistics('filename')]) / 1024 ** 2, "MB")
+
 		binarizer: MultiLabelBinarizer = get_label_binarizer(classifier_models_dir=self.classifier_models_dir)
+
+		snapshot3 = tracemalloc.take_snapshot()
+		print("Memory after binarizer:", sum([stat.size for stat in snapshot3.statistics('filename')]) / 1024 ** 2, "MB")
 
 		for label in binarizer.classes_:
 			with get_model(classifier_models_dir=self.classifier_models_dir, label=label) as model:
 				prob: float = float(model.predict_proba(query_embedding)[0][1])
+				snapshot4 = tracemalloc.take_snapshot()
+				print("Memory after prediction:", sum([stat.size for stat in snapshot4.statistics('filename')]) / 1024 ** 2, "MB")
+
 				if prob >= self.threshold:
 					categories.append(label)
 
