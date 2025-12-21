@@ -1,6 +1,7 @@
 import logging
 
-from app.config.services import vectordb_config
+from app.config.services import vectordb_config, cache_config
+from app.services.cache_service import CacheService
 from app.services.llm_service import LLMService
 from app.services.memory_service import MemoryService
 from app.services.rag_service import RAGService
@@ -33,6 +34,7 @@ class ServiceRegistry:
 	memory: MemoryService | None = None
 	vectordb: VectorDBService | None = None
 	rag: RAGService | None = None
+	cache: CacheService | None = None
 
 service_registry = ServiceRegistry()
 
@@ -44,11 +46,16 @@ async def init_services() -> None:
 		mode=vectordb_config.mode,
 		host=vectordb_config.host,
 		port=vectordb_config.port,
-		ssl=vectordb_config.ssl)
+		ssl=vectordb_config.ssl
+	)
+	service_registry.cache = CacheService(
+		collection_name=cache_config.collection_name
+	)
 	service_registry.rag = RAGService(
 		memory=service_registry.memory,
 		vectordb=service_registry.vectordb,
-		llm=service_registry.llm
+		llm=service_registry.llm,
+		cache=service_registry.cache
 	)
 	logger.info("[ServiceRegistry] Initialized")
 

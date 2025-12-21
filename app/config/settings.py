@@ -35,9 +35,12 @@ class Settings(BaseSettings):
 	openrouter_base_url: str
 
 	# embeddings
-	embedding_model_local_name: str
-	embedding_cache_dir: str
-	embedding_cache_collection: str
+	embedding_model_name: str
+
+	# classifier
+	classifier_model_dir: str
+	classifier_label_binarizer_name: str
+	classifier_model_name: str
 
 	# vectordb
 	vectordb_dir: str
@@ -45,10 +48,14 @@ class Settings(BaseSettings):
 	vectordb_port: int
 	vectordb_collection_name: str
 
+	# cache
+	cachedb_dir: str
+	cachedb_collection_name: str
+
 	model_config = {
 		"env_file": load_env_file(),
 		"env_file_encoding": "utf-8",
-		"extra": "ignore",  # optional but recommended for clean loading
+		"extra": "ignore",
 	}
 
 settings = Settings()

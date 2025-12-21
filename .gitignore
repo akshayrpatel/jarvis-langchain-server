@@ -9,10 +9,8 @@ wheels/
 postman/
 trash/
 cache/
-models/
 logs/
 backup/
-
 tests/
 
 *.egg-info

@@ -3,13 +3,11 @@ import logging
 from typing import List
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage
-from langchain_core.output_parsers import PydanticOutputParser
 from langchain_groq import ChatGroq
 from langchain_mistralai import ChatMistralAI
 from langchain_openai import ChatOpenAI
 
 from app.config.models import mistral_config, groq_config, openrouter_config
-from app.dto.rag_response import RAGResponse
 
 logger = logging.getLogger(__name__)
 
@@ -22,15 +20,12 @@ class LLMService:
   query them in order until one successfully returns a response.
 
   Attributes:
-    response_parser (PydanticOutputParser): Parser that converts raw LLM
-        output into a ``RAGResponse`` model.
     providers (List[BaseChatModel]): Ordered list of LLM providers. The
         service iterates through these providers in sequence and falls back
         to the next one if a provider fails.
   """
 
 	def __init__(self) -> None:
-		self.response_parser = PydanticOutputParser(pydantic_object=RAGResponse)
 		self.providers: List[BaseChatModel] = [
 			ChatMistralAI(
 				api_key=mistral_config.api_key,
@@ -71,10 +66,3 @@ class LLMService:
 
 		logger.error("[LLMService] All llm providers failed")
 		return "Sorry, I am temporarily unavailable. Please try again later."
-
-	def parse_response(self, response: str) -> RAGResponse | None:
-		try:
-			return self.response_parser.parse(response)
-		except Exception as e:
-			logger.warning(f"[LLMService] Failed to parse followup questions from response: {e}")
-		return None

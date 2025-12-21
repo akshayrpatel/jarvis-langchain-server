@@ -2,8 +2,11 @@ import logging
 
 from typing import List
 from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.output_parsers import PydanticOutputParser
 
 from app.config.services import classifier_config
+from app.dto.rag_response import RAGResponse, RAGResponseQuality
+from app.services.cache_service import CacheService
 from app.services.category_classifier import CategoryClassifier
 from app.services.memory_service import MemoryService
 from app.services.vectordb_service import VectorDBService
@@ -36,11 +39,14 @@ class RAGService:
 	def __init__(self,
 	             memory: MemoryService,
 	             vectordb: VectorDBService,
-	             llm: LLMService):
+	             llm: LLMService,
+	             cache: CacheService):
+		self.response_parser = PydanticOutputParser(pydantic_object=RAGResponse)
 		self.memory_service = memory
 		self.vectordb_service = vectordb
 		self.llm_service = llm
-		self.classifier = CategoryClassifier(classifier_config.model_local)
+		self.cache = cache
+		self.classifier = CategoryClassifier(classifier_config.embedding_model_name)
 
 	async def _retrieve_context(self, query: str) -> str | None:
 		# logger.debug("[RAGService] Retrieving context for query: %s", query)
@@ -50,26 +56,33 @@ class RAGService:
 		# except Exception as e:
 		# 	logger.error("[RAGService] Failed to retrieve context: %s", e)
 		# 	return None
-		logger.info("[RAGService] Retrieving context for query: %s", query)
+		logger.info(f"[RAGService] Retrieving context for query: {query}")
 		try:
 			categories: List[str] = self.classifier.classify(query)
 			relevant_docs: List[str] = self.vectordb_service.similarity_search_by_category(query, categories)
 		except Exception as e:
-			logger.error("[RAGService] Failed to retrieve context: %s", e)
+			logger.error(f"[RAGService] Failed to retrieve context: {e}")
 			return None
 
 		if not relevant_docs:
-			logger.info("[RAGService] No context found for query: %s", query)
+			logger.info(f"[RAGService] No context found for query: {query}")
 			return None
 
 		context =  "\n".join(doc for doc in relevant_docs)
-		logger.info("[RAGService] Retrieved context: ...%s", context[:100])
+		logger.info(f"[RAGService] Retrieved context of length: {len(context)}")
 		return context
 
-	async def answer(self, session_id: str, query: str) -> str:
+	async def answer(self, session_id: str, query: str) -> RAGResponse:
 		"""
     Add current query to memory, retrieve message from history, get relevant documents and answer
     """
+
+		cache_ans: str = self.cache.get(query)
+		if cache_ans:
+			logger.info(f"[RAGService] Retrieved answer for query from cache")
+			self.memory_service.add_user_message(session_id, query)
+			cached_rag_response = self.parse_response(cache_ans)
+			return cached_rag_response
 
 		# save query to memory
 		self.memory_service.add_user_message(session_id, query)
@@ -92,7 +105,18 @@ class RAGService:
 		]
 
 		logger.info("[RAGService] Sending query to LLM: %s", query)
-		response =  await self.llm_service.chat(messages)
-		logger.info("[RAGService] Received response from LLM: ... %s", response[:50])
+		response: str =  await self.llm_service.chat(messages)
+		rag_response: RAGResponse = self.parse_response(response)
 
-		return response
+		if rag_response.response_quality == RAGResponseQuality.GOOD.value:
+			logger.info("[RAGService] Received good response from LLM, adding to cache")
+			self.cache.put(query, response)
+
+		return rag_response
+
+	def parse_response(self, response: str) -> RAGResponse:
+		try:
+			return self.response_parser.parse(response)
+		except Exception as e:
+			logger.warning(f"[RAGService] Failed to parse llm response: {e}")
+		return RAGResponse(markdown_text=response, followup_questions=[], response_quality=RAGResponseQuality.BAD.value)

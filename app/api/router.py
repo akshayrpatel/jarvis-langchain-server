@@ -13,20 +13,10 @@ async def chat(request: ChatRequest) -> ChatResponse:
 	session_id: str = request.session_id or str(uuid4())
 	query: str = request.query
 
-	answer: str = await service_registry.rag.answer(
+	rag_response: RAGResponse = await service_registry.rag.answer(
 		query=query,
 		session_id=session_id
 	)
-
-	rag_response: RAGResponse = service_registry.llm.parse_response(answer)
-	if rag_response is None:
-		return ChatResponse(
-			answer=answer,
-			session_id=session_id,
-			followups=[]
-		)
-
-	# rag_response = get_sample_rag_response()
 
 	return ChatResponse(
 		answer=rag_response.markdown_text,
@@ -34,6 +24,16 @@ async def chat(request: ChatRequest) -> ChatResponse:
 		followups=rag_response.followup_questions
 	)
 
+# @router.post("/chat", response_model=ChatResponse)
+# async def chat(request: ChatRequest) -> ChatResponse:
+# 	session_id: str = request.session_id or str(uuid4())
+#
+# 	rag_response = get_sample_rag_response()
+# 	return ChatResponse(
+# 		answer=rag_response.markdown_text,
+# 		session_id=session_id,
+# 		followups=rag_response.followup_questions
+# 	)
 
 def get_sample_rag_response() -> RAGResponse:
 	return RAGResponse(
@@ -44,5 +44,6 @@ def get_sample_rag_response() -> RAGResponse:
         "Would you prefer a breakdown of his *technical skills* (e.g., Python, RAG pipelines) or *educational background*?",
         "How does Akshay’s approach to *open-source contributions* (via GitHub) align with your interests?",
         "Should I highlight his *preferred communication channels* for a particular type of inquiry?"
-    ]
+    ],
+		response_quality="good"
 	)

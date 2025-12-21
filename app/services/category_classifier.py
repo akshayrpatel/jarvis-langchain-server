@@ -1,10 +1,15 @@
 import logging
+import joblib
+import numpy as np
+
 from enum import Enum
 from typing import List, Dict
-
 from pydantic import BaseModel
 from fastembed import TextEmbedding
-from app.utils import service_utils
+from sklearn.preprocessing import MultiLabelBinarizer
+from xgboost import XGBClassifier
+
+from app.config.services import classifier_config
 
 
 class Category(str, Enum):
@@ -18,13 +23,11 @@ class Category(str, Enum):
 	CALENDAR = "calendar"
 	GENERAL = "general"
 
-
 class CategoryInfo(BaseModel):
 	name: Category
 	description: str
 	enable_rag: bool = True
 	enable_tools: bool = False
-
 
 CATEGORY_REGISTRY: Dict[Category, CategoryInfo] = {
 	Category.BACKGROUND: CategoryInfo(
@@ -94,34 +97,39 @@ class CategoryClassifier:
         representations of both queries and category descriptions.
     threshold (float): Minimum similarity score required for a category
         to be considered a match.
-    category_embeddings (Dict[Category, List[float]]): Mapping from
-        category objects to their corresponding embedding vectors.
   """
 
-	def __init__(self, model_name: str, threshold: float = 0.6):
-		self.embedder: TextEmbedding = TextEmbedding(model_name, threads=1)
+	def __init__(self,
+	             embedding_model_name: str,
+	             classifier_models_dir: str = classifier_config.models_dir,
+	             threshold: float = 0.6):
+		self.embedder: TextEmbedding = TextEmbedding(embedding_model_name, threads=1)
+		self.classifier_models_dir: str = classifier_models_dir
 		self.threshold: float = threshold
-		self.category_embeddings: Dict[Category, List[float]] = {}
 
-		for category_info in CATEGORY_REGISTRY.values():
-			embedding = self._embed_text(category_info.description)
-			self.category_embeddings[category_info.name] = embedding
+		# Load label encoder, and classifier
+		self.multi_label_binarizer: MultiLabelBinarizer = joblib.load(
+			f"{classifier_models_dir}/{classifier_config.classifier_label_binarizer_name}"
+		)
+		self.classifier_model: XGBClassifier = joblib.load(
+			f"{classifier_models_dir}/{classifier_config.classifier_model_name}"
+		)
 
-	def _embed_text(self, text: str) -> List[float]:
-		return (list(self.embedder.embed(text))[0]).tolist()
+	def _embed_text(self, text: str) -> np.ndarray:
+		return np.array(list(self.embedder.embed(text)))
 
-	def classify(self, query: str) -> List[str]:
+	def classify(self, text: str) -> List[str]:
 		categories: List[str] = []
-		query_embedding: List[float] = self._embed_text(query)
+		query_embedding: np.ndarray = self._embed_text(text)
+		probs = self.classifier_model.predict_proba(query_embedding)
 
-		for category, category_embedding in self.category_embeddings.items():
-			similarity = service_utils.cosine_similarity(query_embedding, category_embedding)
-			if similarity >= self.threshold:
-				categories.append(category.value)
+		for idx, label in enumerate(self.multi_label_binarizer.classes_):
+			if probs[idx][0][1] >= self.threshold:
+				categories.append(label)
 
 		if len(categories) == 0:
 			categories.append(Category.GENERAL.value)
 
-		logger.info("[CategoryClassifier] Categories: {}".format(categories))
+		logger.info("[CategoryClassifier] Categories for query: {}".format(categories))
 		return categories
 

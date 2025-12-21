@@ -128,7 +128,7 @@ class VectorDBService:
 		if self.client is None:
 			self.initialize_db_connection()
 
-		logger.info("[VectorDBService] Running similarity search by category for query: %s", query[:10])
+		logger.info("[VectorDBService] Running similarity search by category for query: %s...", query[:10])
 		results = self.collection.get(
 		    where={"category": {"$in": categories}},
 		    include=["documents", "metadatas"]
