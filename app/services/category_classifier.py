@@ -1,3 +1,4 @@
+import os
 import logging
 import joblib
 import numpy as np
@@ -8,9 +9,15 @@ from pydantic import BaseModel
 from fastembed import TextEmbedding
 from sklearn.preprocessing import MultiLabelBinarizer
 from functools import lru_cache
-from xgboost import XGBClassifier
+from contextlib import contextmanager
 
 from app.config.services import classifier_config
+
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["XGBOOST_NUM_THREADS"] = "1"
+from xgboost import XGBClassifier
 
 
 class Category(str, Enum):
@@ -95,11 +102,14 @@ def get_label_binarizer(classifier_models_dir: str = classifier_config.models_di
 	path = f"{classifier_models_dir}/{model_label_binarizer_name}.pkl"
 	return joblib.load(path)
 
-@lru_cache(maxsize=3)  # Keep only 3 XGBoost models in memory at a time
-def get_model(classifier_models_dir: str, label: str) -> XGBClassifier:
-	"""Load a single XGBoost model for a given label, cached"""
+@contextmanager
+def get_model(classifier_models_dir: str, label: str):
 	path = f"{classifier_models_dir}/xgb_{label}.pkl"
-	return joblib.load(path)
+	model = joblib.load(path)
+	try:
+		yield model
+	finally:
+		del model
 
 class CategoryClassifier:
 	"""
@@ -134,10 +144,10 @@ class CategoryClassifier:
 		binarizer: MultiLabelBinarizer = get_label_binarizer(classifier_models_dir=self.classifier_models_dir)
 
 		for label in binarizer.classes_:
-			model: XGBClassifier = get_model(classifier_models_dir=self.classifier_models_dir, label=label)
-			prob: float = float(model.predict_proba(query_embedding)[0][1])
-			if prob >= self.threshold:
-				categories.append(label)
+			with get_model(classifier_models_dir=self.classifier_models_dir, label=label) as model:
+				prob: float = float(model.predict_proba(query_embedding)[0][1])
+				if prob >= self.threshold:
+					categories.append(label)
 
 		if len(categories) == 0:
 			categories.append(Category.GENERAL.value)
