@@ -7,7 +7,8 @@ Jarvis LangChain Server is the backend to my personal AI-powered portfolio assis
 
 I wanted to create a system where visitors to my [portfolio](https://akshayrpatel.github.io/) website could **ask questions about me** and get intelligent, context-aware responses. Beyond being a portfolio feature, this project allowed me to **experiment with the latest AI technologies** and understand how real-world LLM-powered systems are designed and orchestrated.
 
-The purpose of this project was to **learn and integrate state-of-the-art AI and ML frameworks**, while also building a **functional RAG-based assistant** for my portfolio.
+> [!NOTE]
+> This project was developed using an **AI-augmented workflow**, leveraging LLMs to reason about architecture, validate system design ideas, and refine documentation. The project consists of code that was written with AI-assisted suggestions, but fully reviewed, validated, and owned by the developer.
 
 ## **Components**
 
